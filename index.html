@@ -30,7 +30,7 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;h
 .filter-bar{display:none;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;}
 .filter-bar.active{display:flex;}
 .filter-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
-.filter-pill.tipster{background:rgba(126,87,194,.15);color:var(--purple);border:1px solid rgba(126,87,194,.3);}
+.filter-pill.sport{background:rgba(126,87,194,.15);color:var(--purple);border:1px solid rgba(126,87,194,.3);}
 .filter-pill.activity{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3);}
 .filter-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
 .at-banner{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
@@ -121,9 +121,9 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
   <div class="nav-right">
     <span class="updated" id="updatedTime"></span>
     <div class="nav-group">
-      <span class="nav-label">Tipster</span>
-      <select class="nav-select" id="tipsterSelect" onchange="setTipster(this.value)">
-        <option value="All">All Tipsters</option>
+      <span class="nav-label">Sport</span>
+      <select class="nav-select" id="sportSelect" onchange="setSport(this.value)">
+        <option value="All">All Sports</option>
       </select>
     </div>
     <div class="nav-group">
@@ -145,7 +145,7 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
   <div class="err" id="errMsg"></div>
   <div class="filter-bar" id="filterBar">
     <span class="filter-lbl">Filtering:</span>
-    <span class="filter-pill tipster" id="pillTipster" style="display:none"></span>
+    <span class="filter-pill sport" id="pillSport" style="display:none"></span>
     <span class="filter-pill activity" id="pillActivity" style="display:none"></span>
   </div>
 
@@ -203,11 +203,11 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
   </div>
 
   <div class="tbl-card">
-    <div class="tbl-title" id="tblTitle">Tipster Breakdown — Last 7 Days</div>
+    <div class="tbl-title" id="tblTitle">Sport Breakdown — Last 7 Days</div>
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>TIPSTER</th><th>TURNOVER</th><th>BETS</th><th>AVG ODDS</th>
+          <th>SPORT</th><th>TURNOVER</th><th>BETS</th><th>AVG ODDS</th>
           <th id="thROI">ROI</th><th>UNITS</th><th>PROFIT</th><th>P/BET</th><th>STRIKE</th>
         </tr></thead>
         <tbody id="tblBody"></tbody>
@@ -223,7 +223,7 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>Date</th><th>Tipster</th><th>Selection</th><th>Bookie</th>
+          <th>Date</th><th>Sport</th><th>Selection</th><th>Bookie</th>
           <th>Odds</th><th>Stake</th><th>Result</th><th>P&amp;L</th>
         </tr></thead>
         <tbody id="recentBody"></tbody>
@@ -235,18 +235,26 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
 </div>
 
 <script>
-// ─── CONFIG — replace with your published Google Sheet CSV URL ────
-// In Google Sheets: File → Share → Publish to web → CSV → copy URL
-const BETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTawpKKcbo-EOtZnFmcYroP29nbWXpnVaW0pY1HO02VTasEd4y_SaB6LbsLF3R4PdB4BSUow1qYBbU-/pub?output=csv';
+// ─── CONFIG — published Google Sheet CSV URLs ────────────────────
+// In Google Sheets: File → Share → Publish to web → CSV → copy URL.
+// Both feeds use the same unit-based schema and are merged on load; the
+// "Sport" column (NBA / NRL / AFL / Soccer / Racing) drives the Sport filter.
+const BETS_URLS = [
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSG4E5XmwFYNoHMkgQUfCzdSjhGjM47S0fA11rqQvN9hStRGcPNxZlE8RegbQ_wwh72iiPShtGQmc96/pub?output=csv', // All non-promo sport
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTawpKKcbo-EOtZnFmcYroP29nbWXpnVaW0pY1HO02VTasEd4y_SaB6LbsLF3R4PdB4BSUow1qYBbU-/pub?output=csv'  // All non-promo racing
+];
+// Sheets track results in units; convert to $ at a notional $100/unit so the
+// dollar-denominated UI stays coherent (ROI / strike / unit figures are unaffected).
+const UNIT_SIZE = 100;
 
 // ─── Activity Classification ──────────────────────────────────────
-const ACCOUNT_ACTS = new Set(['deposit','withdrawal','adjustment','bonus credit','warm','limited','gubbed','semi-gubbed']);
+// Both feeds are non-promo, so every imported bet is tagged 'Non-Promo'.
 const PROMO_FILTER_ACTS = new Set(['promo','qualifying']);
 const EXCLUDE_FROM_STATS = new Set(['deposit','withdrawal']);
 
 // ─── State ───────────────────────────────────────────────────────
 let allBets=[];
-let period=7, tipsterFilter='All', activityFilter='All';
+let period=7, sportFilter='All', activityFilter='All';
 let customStart=null, customEnd=null;
 let recentPage=0;
 const RECENT_PER_PAGE=15, RECENT_MAX=150;
@@ -287,15 +295,21 @@ function cleanNum(s){
   const n=parseFloat(s.replace(/[$,\(\)\+\s]/g,'').replace(/^-/,''));
   return isNaN(n)?0:(neg?-n:n);
 }
-function parseDate(s){
+const MONTHS={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function parseDate(s,fallbackYear){
   if(!s) return null;
+  s=s.trim();
   let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
   if(m) return new Date(+m[3],+m[2]-1,+m[1]);
   m=s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
   if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  // Month-name formats: "Jan 6", "Jan 6, 2026", "6 Jan 2026" (year optional → fallback)
+  m=s.match(/^([A-Za-z]{3,})\.?\s+(\d{1,2})(?:,?\s+(\d{4}))?$/);
+  if(m){const mo=MONTHS[m[1].slice(0,3).toLowerCase()];if(mo!=null) return new Date(+(m[3]||fallbackYear||new Date().getFullYear()),mo,+m[2]);}
+  m=s.match(/^(\d{1,2})\s+([A-Za-z]{3,})\.?(?:,?\s+(\d{4}))?$/);
+  if(m){const mo=MONTHS[m[2].slice(0,3).toLowerCase()];if(mo!=null) return new Date(+(m[3]||fallbackYear||new Date().getFullYear()),mo,+m[1]);}
   return null;
 }
-function toTitle(s){return s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());}
 function cutoff(days){
   if(days===1){const d=new Date();d.setTime(d.getTime()-86400000);return d;}
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(days-1));return d;
@@ -306,19 +320,23 @@ function fmtDateShort(d){return d.toLocaleDateString('en-AU',{day:'numeric',mont
 const RESULTED=new Set(['w','l','1','2','v','void','bonus']);
 function parseBets(rows){
   return rows.map(r=>{
-    const actRaw=(r['ACTIVITY']||'').trim();
-    const resultRaw=(r['RESULT']||'').trim().toLowerCase();
+    // Result lives in the 'Vesult' column (sheet header typo); case varies (W/w, L/l, V).
+    const resultRaw=(r['VESULT']||r['RESULT']||'').trim().toLowerCase();
+    const unitsStaked=cleanNum(r['UNITS STAKED']||r['STAKE']||'');
+    const netUnits=cleanNum(r['NET UNITS']||r['UNITS GAINED']||'');
+    // "Mon D" sport dates have no year — derive it from the Week Of / Month column.
+    const ym=(r['WEEK OF']||r['MONTH']||'').match(/(\d{4})/);
     return{
-      date:parseDate(r['DATE']||''),
-      activity:actRaw,
+      date:parseDate(r['DATE']||'',ym?+ym[1]:null),
+      activity:'Non-Promo',
       result:resultRaw,
-      pending:!RESULTED.has(resultRaw)&&!ACCOUNT_ACTS.has(actRaw.toLowerCase()),
-      stake:cleanNum(r['STAKE']||''),
+      pending:!RESULTED.has(resultRaw),
+      stake:unitsStaked*UNIT_SIZE,
       odds:cleanNum(r['ODDS']||''),
-      netCash:cleanNum(r['NET CASH']||''),
-      unitsGained:cleanNum(r['UNITS GAINED']||''),
-      totalProfit:cleanNum(r['TOTAL PROFIT']||''),
-      tipster:toTitle((r['TIPSTER']||'Unknown').trim()),
+      netCash:netUnits*UNIT_SIZE,
+      unitsGained:netUnits,
+      totalProfit:0,
+      sport:(r['SPORT']||'Unknown').trim()||'Unknown',
       bookie:(r['BOOKIE']||'').trim(),
       _raw:r
     };
@@ -334,7 +352,7 @@ function filterBets(bets,days,tip,act){
   return bets.filter(b=>{
     if(lo&&b.date<lo) return false;
     if(hi&&b.date>hi) return false;
-    if(tip!=='All'&&b.tipster!==tip) return false;
+    if(tip!=='All'&&b.sport!==tip) return false;
     if(act!=='All'){
       const al=act.toLowerCase(),bl=b.activity.toLowerCase();
       if(al==='promo'){if(!PROMO_FILTER_ACTS.has(bl)) return false;}
@@ -362,9 +380,10 @@ async function loadData(){
   setLoad(0,'Loading results...');showLoad(true);showErr('');
   try{
     setLoad(20,'Fetching bets...');
-    const bRaw=await fetch(BETS_URL).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});
+    const raws=await Promise.all(BETS_URLS.map(u=>
+      fetch(u).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})));
     setLoad(60,'Parsing...');
-    allBets=parseBets(parseCSV(bRaw));
+    allBets=raws.flatMap(raw=>parseBets(parseCSV(raw)));
     setLoad(85,'Rendering...');
     buildOptions();render();
     setLoad(100,'Done');await wait(300);showLoad(false);
@@ -378,9 +397,9 @@ function showErr(m){const e=document.getElementById('errMsg');e.style.display=m?
 
 // ─── Dropdowns ───────────────────────────────────────────────────
 function buildOptions(){
-  const tips=[...new Set(allBets.map(b=>b.tipster))].filter(Boolean).sort();
-  const tSel=document.getElementById('tipsterSelect'),prevT=tSel.value;
-  tSel.innerHTML='<option value="All">All Tipsters</option>';
+  const tips=[...new Set(allBets.map(b=>b.sport))].filter(Boolean).sort();
+  const tSel=document.getElementById('sportSelect'),prevT=tSel.value;
+  tSel.innerHTML='<option value="All">All Sports</option>';
   tips.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tSel.appendChild(o);});
   if([...tSel.options].some(o=>o.value===prevT)) tSel.value=prevT;
 }
@@ -388,16 +407,16 @@ function buildOptions(){
 // ─── Filter Pill ─────────────────────────────────────────────────
 function updateFilterBar(){
   const bar=document.getElementById('filterBar');
-  const pt=document.getElementById('pillTipster'),pa=document.getElementById('pillActivity');
-  bar.classList.toggle('active',tipsterFilter!=='All'||activityFilter!=='All');
-  if(tipsterFilter!=='All'){pt.style.display='inline-flex';pt.textContent='👤 '+tipsterFilter;}else pt.style.display='none';
+  const pt=document.getElementById('pillSport'),pa=document.getElementById('pillActivity');
+  bar.classList.toggle('active',sportFilter!=='All'||activityFilter!=='All');
+  if(sportFilter!=='All'){pt.style.display='inline-flex';pt.textContent='🏆 '+sportFilter;}else pt.style.display='none';
   if(activityFilter!=='All'){pa.style.display='inline-flex';pa.textContent='🏷 '+activityFilter;}else pa.style.display='none';
 }
 
 // ─── Main Render ─────────────────────────────────────────────────
 function render(){
   updateFilterBar();
-  const bf=filterBets(allBets,period,tipsterFilter,activityFilter);
+  const bf=filterBets(allBets,period,sportFilter,activityFilter);
   const forStats=bf;
 
   const latestTP=getLatestTotalProfit();
@@ -430,9 +449,9 @@ function render(){
   setText('scPPB',fmt$(s.ppb));colorEl('scPPB',s.ppb);
   document.getElementById('scWL').textContent=s.wins+'W  '+s.losses+'L';
   setText('scAvgOdds',s.avgOdds>1?s.avgOdds.toFixed(2)+'x':'—');
-  setText('tblTitle','Tipster Breakdown — '+tlbl);
+  setText('tblTitle','Sport Breakdown — '+tlbl);
   drawChart(bf);
-  buildMonthly(filterBets(allBets,0,tipsterFilter,activityFilter));
+  buildMonthly(filterBets(allBets,0,sportFilter,activityFilter));
   buildTable(bf);
   buildRecentFeed(allBets);
 }
@@ -486,12 +505,12 @@ function buildMonthly(bets){
   });
 }
 
-// ─── Tipster Table ────────────────────────────────────────────────
+// ─── Sport Table ────────────────────────────────────────────────
 function buildTable(bets){
   const tbody=document.getElementById('tblBody');tbody.innerHTML='';
-  const tips=[...new Set(bets.map(b=>b.tipster))].sort();
+  const tips=[...new Set(bets.map(b=>b.sport))].sort();
   if(!tips.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No data for this period</td></tr>';return;}
-  tips.map(t=>({name:t,s:calcStats(bets.filter(b=>b.tipster===t))}))
+  tips.map(t=>({name:t,s:calcStats(bets.filter(b=>b.sport===t))}))
     .sort((a,b)=>b.s.turnover-a.s.turnover)
     .forEach(({name,s})=>{
       const tr=document.createElement('tr');
@@ -510,7 +529,7 @@ function buildRecentFeed(bets){
     return al==='promo'?PROMO_FILTER_ACTS.has(bl):bl===al;
   };
   const bsrc=bets.filter(b=>isStatBet(b)&&b.stake>0&&actMatch(b)
-    &&(tipsterFilter==='All'||b.tipster===tipsterFilter));
+    &&(sportFilter==='All'||b.sport===sportFilter));
   const inRange=b=>period!=='custom'||(b.date>=customStart&&b.date<=customEnd);
   const all=bsrc.filter(inRange).sort((a,b)=>b.date-a.date).slice(0,RECENT_MAX);
   if(!all.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:16px;">No bets yet</td></tr>';if(pager)pager.innerHTML='';return;}
@@ -530,7 +549,7 @@ function buildRecentFeed(bets){
     const plColor=b.pending?'var(--muted)':isWin?'var(--green)':'var(--red)';
     const plText=b.pending?'Pending':fmt$(b.netCash);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="color:var(--muted);font-size:11px;">${ds}</td><td style="font-weight:600;">${b.tipster}</td><td style="color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sel}</td><td style="color:var(--dim);font-size:11px;">${bk}</td><td style="color:var(--purple);">${b.odds>0?b.odds.toFixed(2):'—'}</td><td>${fmt$(b.stake)}</td><td>${rh}</td><td style="font-weight:600;color:${plColor};">${plText}</td>`;
+    tr.innerHTML=`<td style="color:var(--muted);font-size:11px;">${ds}</td><td style="font-weight:600;">${b.sport}</td><td style="color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sel}</td><td style="color:var(--dim);font-size:11px;">${bk}</td><td style="color:var(--purple);">${b.odds>0?b.odds.toFixed(2):'—'}</td><td>${fmt$(b.stake)}</td><td>${rh}</td><td style="font-weight:600;color:${plColor};">${plText}</td>`;
     tbody.appendChild(tr);
   });
   const ts=all[0].date?all[0].date.toLocaleDateString('en-AU',{day:'numeric',month:'short'}):'—';
@@ -598,7 +617,7 @@ function applyCustomRange(){
   document.getElementById('subCustom').textContent=customRangeText();
   render();
 }
-function setTipster(v){tipsterFilter=v;recentPage=0;render();}
+function setSport(v){sportFilter=v;recentPage=0;render();}
 function setActivity(v){activityFilter=v;recentPage=0;render();}
 
 loadData();
