@@ -33,10 +33,17 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;h
 .filter-pill.sport{background:rgba(126,87,194,.15);color:var(--purple);border:1px solid rgba(126,87,194,.3);}
 .filter-pill.activity{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3);}
 .filter-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
-.at-banner{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.at-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
 .at-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
 .at-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;}
 .at-val{font-size:21px;font-weight:700;}
+.unit-banner{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px;}
+.unit-title{font-size:11px;font-weight:600;color:var(--purple);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.unit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.unit-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.unit-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.unit-sub{font-size:9px;color:var(--muted);margin-top:5px;}
+.unit-val{font-size:20px;font-weight:700;}
 .c-green{color:var(--green)!important;}.c-red{color:var(--red)!important;}.c-purple{color:var(--purple)!important;}.c-dim{color:var(--dim)!important;}
 .ptabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;}
 .ptab{padding:8px 22px 11px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;text-align:left;}
@@ -97,7 +104,7 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
 .pager button:disabled{opacity:.4;cursor:default;}
 .pager .pager-gap{color:var(--muted);padding:0 2px;}
 @media(max-width:768px){
-  .at-banner{grid-template-columns:1fr 1fr;}.stat-grid{grid-template-columns:1fr 1fr;}
+  .at-banner{grid-template-columns:1fr 1fr;}.stat-grid{grid-template-columns:1fr 1fr;}.unit-grid{grid-template-columns:1fr;}
   .hero{flex-direction:column;gap:14px;align-items:flex-start;}.main{padding:12px;}
   .hero-stats{gap:16px;}.monthly-grid{gap:8px;}.ptab{padding:8px 14px 11px;}
   .nav-label{display:none;}
@@ -153,7 +160,15 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
     <div class="at-card"><div class="at-label">All Time Profit</div><div class="at-val c-green" id="atProfit">—</div></div>
     <div class="at-card"><div class="at-label">All Time ROI</div><div class="at-val c-green" id="atROI">—</div></div>
     <div class="at-card"><div class="at-label">All Time Turnover</div><div class="at-val c-purple" id="atTurnover">—</div></div>
-    <div class="at-card"><div class="at-label">All Time Units</div><div class="at-val c-green" id="atUnits">—</div></div>
+  </div>
+
+  <div class="unit-banner">
+    <div class="unit-title">💰 All Time Profit by Unit Size</div>
+    <div class="unit-grid">
+      <div class="unit-card"><div class="unit-lbl">$100 / Unit Punter</div><div class="unit-val c-green" id="p100">—</div><div class="unit-sub">$100 per unit staked</div></div>
+      <div class="unit-card"><div class="unit-lbl">$200 / Unit Punter</div><div class="unit-val c-green" id="p200">—</div><div class="unit-sub">$200 per unit staked</div></div>
+      <div class="unit-card"><div class="unit-lbl">$500 / Unit Punter</div><div class="unit-val c-green" id="p500">—</div><div class="unit-sub">$500 per unit staked</div></div>
+    </div>
   </div>
 
   <div class="ptabs">
@@ -370,10 +385,6 @@ function calcStats(bets){
   return{turnover:to,profit:pr,roi:to>0?(pr/to)*100:0,units:un,bets:c.length,wins:wi,losses:lo,
     avgOdds:ao,avgStake:c.length?to/c.length:0,ppb:c.length?pr/c.length:0,strike:(wi+lo)>0?wi/(wi+lo)*100:0};
 }
-function getLatestTotalProfit(){
-  const vals=allBets.filter(b=>b.totalProfit!==0).sort((a,b)=>b.date-a.date);
-  return vals.length?vals[0].totalProfit:null;
-}
 
 // ─── Data Loading ────────────────────────────────────────────────
 async function loadData(){
@@ -419,15 +430,15 @@ function render(){
   const bf=filterBets(allBets,period,sportFilter,activityFilter);
   const forStats=bf;
 
-  const latestTP=getLatestTotalProfit();
   const atBets=filterBets(allBets,0,'All','All');
   const at=calcStats(atBets);
-  const atProfit=latestTP!==null?latestTP:at.profit;
-  const atRoi=at.turnover>0?(atProfit/at.turnover)*100:0;
-  setText('atProfit',fmt$(atProfit));colorEl('atProfit',atProfit);
-  setText('atROI',fmtP(atRoi));colorEl('atROI',atRoi);
+  // Headline profit is reported in units; the breakdown below converts it to $ per unit size.
+  setText('atProfit',fmtU(at.units));colorEl('atProfit',at.units);
+  setText('atROI',fmtP(at.roi));colorEl('atROI',at.roi);
   setText('atTurnover',fmt$(at.turnover));
-  setText('atUnits',fmtU(at.units));colorEl('atUnits',at.units);
+  setText('p100',fmt$(at.units*100));colorEl('p100',at.units);
+  setText('p200',fmt$(at.units*200));colorEl('p200',at.units);
+  setText('p500',fmt$(at.units*500));colorEl('p500',at.units);
 
   const now=new Date();
   document.getElementById('sub7').textContent=fmtDateShort(cutoff(7))+' – '+fmtDateShort(now);
