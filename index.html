@@ -37,13 +37,6 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;h
 .at-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
 .at-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;}
 .at-val{font-size:21px;font-weight:700;}
-.unit-banner{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px;}
-.unit-title{font-size:11px;font-weight:600;color:var(--purple);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-.unit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-.unit-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
-.unit-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
-.unit-sub{font-size:9px;color:var(--muted);margin-top:5px;}
-.unit-val{font-size:20px;font-weight:700;}
 .c-green{color:var(--green)!important;}.c-red{color:var(--red)!important;}.c-purple{color:var(--purple)!important;}.c-dim{color:var(--dim)!important;}
 .ptabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;}
 .ptab{padding:8px 22px 11px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;text-align:left;}
@@ -104,7 +97,7 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
 .pager button:disabled{opacity:.4;cursor:default;}
 .pager .pager-gap{color:var(--muted);padding:0 2px;}
 @media(max-width:768px){
-  .at-banner{grid-template-columns:1fr 1fr;}.stat-grid{grid-template-columns:1fr 1fr;}.unit-grid{grid-template-columns:1fr;}
+  .at-banner{grid-template-columns:1fr 1fr;}.stat-grid{grid-template-columns:1fr 1fr;}
   .hero{flex-direction:column;gap:14px;align-items:flex-start;}.main{padding:12px;}
   .hero-stats{gap:16px;}.monthly-grid{gap:8px;}.ptab{padding:8px 14px 11px;}
   .nav-label{display:none;}
@@ -162,15 +155,6 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
     <div class="at-card"><div class="at-label">All Time Turnover</div><div class="at-val c-purple" id="atTurnover">—</div></div>
   </div>
 
-  <div class="unit-banner">
-    <div class="unit-title">💰 All Time Profit by Unit Size</div>
-    <div class="unit-grid">
-      <div class="unit-card"><div class="unit-lbl">$100 / Unit Punter</div><div class="unit-val c-green" id="p100">—</div><div class="unit-sub">$100 per unit staked</div></div>
-      <div class="unit-card"><div class="unit-lbl">$200 / Unit Punter</div><div class="unit-val c-green" id="p200">—</div><div class="unit-sub">$200 per unit staked</div></div>
-      <div class="unit-card"><div class="unit-lbl">$500 / Unit Punter</div><div class="unit-val c-green" id="p500">—</div><div class="unit-sub">$500 per unit staked</div></div>
-    </div>
-  </div>
-
   <div class="ptabs">
     <button class="ptab" onclick="setPeriod(1,this)"><span class="ptab-main">DAILY</span><span class="ptab-sub" id="sub1">Last 24 hours</span></button>
     <button class="ptab active" onclick="setPeriod(7,this)"><span class="ptab-main">LAST 7 DAYS</span><span class="ptab-sub" id="sub7">—</span></button>
@@ -201,7 +185,6 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
   <div class="stat-grid">
     <div class="sc"><div class="sc-lbl">Profit</div><div class="sc-val c-green" id="scProfit">—</div></div>
     <div class="sc"><div class="sc-lbl" id="scROIlbl">ROI</div><div class="sc-val c-green" id="scROI">—</div></div>
-    <div class="sc"><div class="sc-lbl">Units Gained</div><div class="sc-val c-purple" id="scUnits">—</div></div>
     <div class="sc"><div class="sc-lbl">Profit / Bet</div><div class="sc-val c-green" id="scPPB">—</div></div>
     <div class="sc"><div class="sc-lbl">W / L</div><div class="sc-val c-dim" id="scWL">—</div></div>
     <div class="sc"><div class="sc-lbl">Avg Odds</div><div class="sc-val c-purple" id="scAvgOdds">—</div></div>
@@ -223,7 +206,7 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
       <table>
         <thead><tr>
           <th>SPORT</th><th>TURNOVER</th><th>BETS</th><th>AVG ODDS</th>
-          <th id="thROI">ROI</th><th>UNITS</th><th>PROFIT</th><th>P/BET</th><th>STRIKE</th>
+          <th id="thROI">ROI</th><th>UNITS</th><th>UNITS/BET</th><th>STRIKE</th>
         </tr></thead>
         <tbody id="tblBody"></tbody>
       </table>
@@ -258,9 +241,8 @@ const BETS_URLS = [
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vSG4E5XmwFYNoHMkgQUfCzdSjhGjM47S0fA11rqQvN9hStRGcPNxZlE8RegbQ_wwh72iiPShtGQmc96/pub?output=csv', // All non-promo sport
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTawpKKcbo-EOtZnFmcYroP29nbWXpnVaW0pY1HO02VTasEd4y_SaB6LbsLF3R4PdB4BSUow1qYBbU-/pub?output=csv'  // All non-promo racing
 ];
-// Sheets track results in units; convert to $ at a notional $100/unit so the
-// dollar-denominated UI stays coherent (ROI / strike / unit figures are unaffected).
-const UNIT_SIZE = 100;
+// Everything in this dashboard is expressed in UNITS — a customer's $ profit
+// depends on their own unit size, so we never convert to dollars.
 
 // ─── Activity Classification ──────────────────────────────────────
 // Both feeds are non-promo, so every imported bet is tagged 'Non-Promo'.
@@ -346,11 +328,10 @@ function parseBets(rows){
       activity:'Non-Promo',
       result:resultRaw,
       pending:!RESULTED.has(resultRaw),
-      stake:unitsStaked*UNIT_SIZE,
+      stake:unitsStaked,
       odds:cleanNum(r['ODDS']||''),
-      netCash:netUnits*UNIT_SIZE,
+      netCash:netUnits,
       unitsGained:netUnits,
-      totalProfit:0,
       sport:(r['SPORT']||'Unknown').trim()||'Unknown',
       bookie:(r['BOOKIE']||'').trim(),
       _raw:r
@@ -432,13 +413,9 @@ function render(){
 
   const atBets=filterBets(allBets,0,'All','All');
   const at=calcStats(atBets);
-  // Headline profit is reported in units; the breakdown below converts it to $ per unit size.
   setText('atProfit',fmtU(at.units));colorEl('atProfit',at.units);
   setText('atROI',fmtP(at.roi));colorEl('atROI',at.roi);
-  setText('atTurnover',fmt$(at.turnover));
-  setText('p100',fmt$(at.units*100));colorEl('p100',at.units);
-  setText('p200',fmt$(at.units*200));colorEl('p200',at.units);
-  setText('p500',fmt$(at.units*500));colorEl('p500',at.units);
+  setText('atTurnover',fmtVol(at.turnover));
 
   const now=new Date();
   document.getElementById('sub7').textContent=fmtDateShort(cutoff(7))+' – '+fmtDateShort(now);
@@ -449,15 +426,14 @@ function render(){
   else{lbl=period===1?'DAILY':period===7?'LAST 7 DAYS':period===28?'LAST 28 DAYS':'ALL TIME';tlbl=periodLabel(lbl);}
   setText('heroLbl',lbl);
   const s=calcStats(forStats);
-  setText('heroTurnover',fmt$(s.turnover));setText('heroBets',s.bets);
-  setText('heroAvg',fmt$(s.avgStake));setText('heroStrike',fmtP(s.strike));
-  setText('scProfit',fmt$(s.profit));colorEl('scProfit',s.profit);
+  setText('heroTurnover',fmtVol(s.turnover));setText('heroBets',s.bets);
+  setText('heroAvg',fmtVol(s.avgStake));setText('heroStrike',fmtP(s.strike));
+  setText('scProfit',fmtU(s.profit));colorEl('scProfit',s.profit);
   const snr=activityFilter==='SNR Bonus';
   setText('scROIlbl',snr?'Retention':'ROI');
   setText('thROI',snr?'RETENTION':'ROI');
   setText('scROI',fmtP(s.roi));colorEl('scROI',s.roi);
-  setText('scUnits',fmtU(s.units));
-  setText('scPPB',fmt$(s.ppb));colorEl('scPPB',s.ppb);
+  setText('scPPB',fmtU(s.ppb));colorEl('scPPB',s.ppb);
   document.getElementById('scWL').textContent=s.wins+'W  '+s.losses+'L';
   setText('scAvgOdds',s.avgOdds>1?s.avgOdds.toFixed(2)+'x':'—');
   setText('tblTitle','Sport Breakdown — '+tlbl);
@@ -486,7 +462,7 @@ function drawChart(bets){
   const minD=pts[0].d.getTime(),maxD=pts[pts.length-1].d.getTime(),dRng=maxD-minD||1;
   const px=d=>PL+((d.getTime()-minD)/dRng)*cW,py=v=>PT+cH-((v-minV)/rng)*cH;
   const defs=se('defs');defs.innerHTML=`<linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3fb950" stop-opacity=".35"/><stop offset="100%" stop-color="#3fb950" stop-opacity=".02"/></linearGradient>`;svg.appendChild(defs);
-  for(let i=0;i<=4;i++){const v=minV+(rng/4)*i,y=py(v);const gl=se('line');sa(gl,{x1:PL,x2:W-PR,y1:y,y2:y,stroke:'#1a2235','stroke-width':1});svg.appendChild(gl);const lb=se('text');sa(lb,{x:PL-6,y:y+4,fill:'#6b7280','font-size':9,'text-anchor':'end'});lb.textContent=Math.abs(v)>=1000?'$'+(v/1000).toFixed(1)+'k':'$'+v.toFixed(0);svg.appendChild(lb);}
+  for(let i=0;i<=4;i++){const v=minV+(rng/4)*i,y=py(v);const gl=se('line');sa(gl,{x1:PL,x2:W-PR,y1:y,y2:y,stroke:'#1a2235','stroke-width':1});svg.appendChild(gl);const lb=se('text');sa(lb,{x:PL-6,y:y+4,fill:'#6b7280','font-size':9,'text-anchor':'end'});lb.textContent=Math.abs(v)>=1000?(v/1000).toFixed(1)+'ku':v.toFixed(0)+'u';svg.appendChild(lb);}
   function mkPath(pts){if(pts.length<2)return`M${px(pts[0].d)},${py(pts[0].v)}`;let d=`M${px(pts[0].d)},${py(pts[0].v)}`;for(let i=1;i<pts.length;i++){const p=pts[i-1],c=pts[i];const mx=(px(p.d)+px(c.d))/2;d+=` C${mx},${py(p.v)} ${mx},${py(c.v)} ${px(c.d)},${py(c.v)}`;}return d;}
   const lp=mkPath(pts),ap=lp+` L${px(pts[pts.length-1].d)},${py(0)} L${px(pts[0].d)},${py(0)} Z`;
   const area=se('path');area.setAttribute('d',ap);area.setAttribute('fill','url(#cg)');svg.appendChild(area);
@@ -510,7 +486,7 @@ function buildMonthly(bets){
   Object.entries(mm).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([key,val])=>{
     const[yr,mo]=key.split('-');const label=new Date(+yr,+mo-1,1).toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
     const cell=document.createElement('div');cell.className='month-cell '+(val>=0?'pos':'neg');
-    const display=Math.abs(val)>=1000?'$'+(val/1000).toFixed(1)+'k':fmt$(val);
+    const display=Math.abs(val)>=1000?(val>=0?'+':'')+(val/1000).toFixed(1)+'ku':fmtU(val);
     cell.innerHTML=`<div class="month-name">${label}</div><div class="month-val">${display}</div>`;
     grid.appendChild(cell);
   });
@@ -520,12 +496,12 @@ function buildMonthly(bets){
 function buildTable(bets){
   const tbody=document.getElementById('tblBody');tbody.innerHTML='';
   const tips=[...new Set(bets.map(b=>b.sport))].sort();
-  if(!tips.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No data for this period</td></tr>';return;}
+  if(!tips.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No data for this period</td></tr>';return;}
   tips.map(t=>({name:t,s:calcStats(bets.filter(b=>b.sport===t))}))
     .sort((a,b)=>b.s.turnover-a.s.turnover)
     .forEach(({name,s})=>{
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${name}</td><td class="c-purple">${fmt$(s.turnover)}</td><td>${s.bets}</td><td>${s.avgOdds>1?s.avgOdds.toFixed(2):'—'}</td><td><span class="roi-badge ${roiCls(s.roi)}">${fmtP(s.roi)}</span></td><td class="${s.units>=0?'c-green':'c-red'}">${fmtU(s.units)}</td><td class="${s.profit>=0?'c-green':'c-red'}">${fmt$(s.profit)}</td><td class="${s.ppb>=0?'c-green':'c-red'}">${fmt$(s.ppb)}</td><td>${fmtP(s.strike)}</td>`;
+      tr.innerHTML=`<td>${name}</td><td class="c-purple">${fmtVol(s.turnover)}</td><td>${s.bets}</td><td>${s.avgOdds>1?s.avgOdds.toFixed(2):'—'}</td><td><span class="roi-badge ${roiCls(s.roi)}">${fmtP(s.roi)}</span></td><td class="${s.units>=0?'c-green':'c-red'}">${fmtU(s.units)}</td><td class="${s.ppb>=0?'c-green':'c-red'}">${fmtU(s.ppb)}</td><td>${fmtP(s.strike)}</td>`;
       tbody.appendChild(tr);
     });
 }
@@ -558,9 +534,9 @@ function buildRecentFeed(bets){
     else if(isLoss) rh='<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(248,81,73,.15);color:var(--red);">L</span>';
     else rh='<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:var(--bg4);color:var(--muted);">V</span>';
     const plColor=b.pending?'var(--muted)':isWin?'var(--green)':'var(--red)';
-    const plText=b.pending?'Pending':fmt$(b.netCash);
+    const plText=b.pending?'Pending':fmtU(b.netCash);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="color:var(--muted);font-size:11px;">${ds}</td><td style="font-weight:600;">${b.sport}</td><td style="color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sel}</td><td style="color:var(--dim);font-size:11px;">${bk}</td><td style="color:var(--purple);">${b.odds>0?b.odds.toFixed(2):'—'}</td><td>${fmt$(b.stake)}</td><td>${rh}</td><td style="font-weight:600;color:${plColor};">${plText}</td>`;
+    tr.innerHTML=`<td style="color:var(--muted);font-size:11px;">${ds}</td><td style="font-weight:600;">${b.sport}</td><td style="color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sel}</td><td style="color:var(--dim);font-size:11px;">${bk}</td><td style="color:var(--purple);">${b.odds>0?b.odds.toFixed(2):'—'}</td><td>${fmtVol(b.stake)}</td><td>${rh}</td><td style="font-weight:600;color:${plColor};">${plText}</td>`;
     tbody.appendChild(tr);
   });
   const ts=all[0].date?all[0].date.toLocaleDateString('en-AU',{day:'numeric',month:'short'}):'—';
@@ -595,9 +571,10 @@ function setRecentPage(p){recentPage=p;buildRecentFeed(allBets);}
 
 // ─── Formatters ───────────────────────────────────────────────────
 function roiCls(r){return r>2?'roi-pos':r<-2?'roi-neg':'roi-neu';}
-function fmt$(n){if(isNaN(n))return'—';const a=Math.abs(n);const s=a>=1000?'$'+a.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}):'$'+a.toFixed(2);return n<0?'-'+s:s;}
 function fmtP(n){if(isNaN(n))return'—';return(n>=0?'+':'')+n.toFixed(1)+'%';}
 function fmtU(n){if(isNaN(n))return'—';return(n>=0?'+':'')+n.toFixed(2)+'u';}
+// Unsigned unit volume (turnover, stake) with thousands separator.
+function fmtVol(n){if(isNaN(n))return'—';return n.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2})+'u';}
 function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 function colorEl(id,v){const e=document.getElementById(id);if(!e)return;e.classList.remove('c-green','c-red');e.classList.add(v>=0?'c-green':'c-red');}
 
