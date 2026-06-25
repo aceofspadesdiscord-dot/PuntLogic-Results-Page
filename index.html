@@ -32,6 +32,7 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;h
 .filter-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
 .filter-pill.sport{background:rgba(126,87,194,.15);color:var(--purple);border:1px solid rgba(126,87,194,.3);}
 .filter-pill.activity{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3);}
+.filter-pill.unit{background:rgba(240,165,0,.15);color:#f0a500;border:1px solid rgba(240,165,0,.3);}
 .filter-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
 .at-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
 .at-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
@@ -121,6 +122,12 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
   <div class="nav-right">
     <span class="updated" id="updatedTime"></span>
     <div class="nav-group">
+      <span class="nav-label">Unit Size</span>
+      <select class="nav-select" id="unitSelect" onchange="setUnitSize(this.value)">
+        <option value="units">Units (default)</option>
+      </select>
+    </div>
+    <div class="nav-group">
       <span class="nav-label">Sport</span>
       <select class="nav-select" id="sportSelect" onchange="setSport(this.value)">
         <option value="All">All Sports</option>
@@ -147,6 +154,7 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
     <span class="filter-lbl">Filtering:</span>
     <span class="filter-pill sport" id="pillSport" style="display:none"></span>
     <span class="filter-pill activity" id="pillActivity" style="display:none"></span>
+    <span class="filter-pill unit" id="pillUnit" style="display:none"></span>
   </div>
 
   <div class="at-banner">
@@ -206,7 +214,7 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
       <table>
         <thead><tr>
           <th>SPORT</th><th>TURNOVER</th><th>BETS</th><th>AVG ODDS</th>
-          <th id="thROI">ROI</th><th>UNITS</th><th>UNITS/BET</th><th>STRIKE</th>
+          <th id="thROI">ROI</th><th id="thUnits">UNITS</th><th id="thUPB">UNITS/BET</th><th>STRIKE</th>
         </tr></thead>
         <tbody id="tblBody"></tbody>
       </table>
@@ -252,6 +260,7 @@ const EXCLUDE_FROM_STATS = new Set(['deposit','withdrawal']);
 // ─── State ───────────────────────────────────────────────────────
 let allBets=[];
 let period=7, sportFilter='All', activityFilter='All';
+let unitSize=null; // null = report in units; otherwise $ per unit (50..1000)
 let customStart=null, customEnd=null;
 let recentPage=0;
 const RECENT_PER_PAGE=15, RECENT_MAX=150;
@@ -399,10 +408,11 @@ function buildOptions(){
 // ─── Filter Pill ─────────────────────────────────────────────────
 function updateFilterBar(){
   const bar=document.getElementById('filterBar');
-  const pt=document.getElementById('pillSport'),pa=document.getElementById('pillActivity');
-  bar.classList.toggle('active',sportFilter!=='All'||activityFilter!=='All');
+  const pt=document.getElementById('pillSport'),pa=document.getElementById('pillActivity'),pu=document.getElementById('pillUnit');
+  bar.classList.toggle('active',sportFilter!=='All'||activityFilter!=='All'||!!unitSize);
   if(sportFilter!=='All'){pt.style.display='inline-flex';pt.textContent='🏆 '+sportFilter;}else pt.style.display='none';
   if(activityFilter!=='All'){pa.style.display='inline-flex';pa.textContent='🏷 '+activityFilter;}else pa.style.display='none';
+  if(unitSize){pu.style.display='inline-flex';pu.textContent='💵 $'+unitSize.toLocaleString('en-AU')+' / unit';}else pu.style.display='none';
 }
 
 // ─── Main Render ─────────────────────────────────────────────────
@@ -411,11 +421,15 @@ function render(){
   const bf=filterBets(allBets,period,sportFilter,activityFilter);
   const forStats=bf;
 
+  // Table headers and the "Profit" labels read "UNITS" / "u" by default, "$" when a unit size is set.
+  setText('thUnits',unitSize?'PROFIT':'UNITS');
+  setText('thUPB',unitSize?'P/BET':'UNITS/BET');
+
   const atBets=filterBets(allBets,0,'All','All');
   const at=calcStats(atBets);
-  setText('atProfit',fmtU(at.units));colorEl('atProfit',at.units);
+  setText('atProfit',fmtSigned(at.units));colorEl('atProfit',at.units);
   setText('atROI',fmtP(at.roi));colorEl('atROI',at.roi);
-  setText('atTurnover',fmtVol(at.turnover));
+  setText('atTurnover',fmtVolume(at.turnover));
 
   const now=new Date();
   document.getElementById('sub7').textContent=fmtDateShort(cutoff(7))+' – '+fmtDateShort(now);
@@ -426,14 +440,14 @@ function render(){
   else{lbl=period===1?'DAILY':period===7?'LAST 7 DAYS':period===28?'LAST 28 DAYS':'ALL TIME';tlbl=periodLabel(lbl);}
   setText('heroLbl',lbl);
   const s=calcStats(forStats);
-  setText('heroTurnover',fmtVol(s.turnover));setText('heroBets',s.bets);
-  setText('heroAvg',fmtVol(s.avgStake));setText('heroStrike',fmtP(s.strike));
-  setText('scProfit',fmtU(s.profit));colorEl('scProfit',s.profit);
+  setText('heroTurnover',fmtVolume(s.turnover));setText('heroBets',s.bets);
+  setText('heroAvg',fmtVolume(s.avgStake));setText('heroStrike',fmtP(s.strike));
+  setText('scProfit',fmtSigned(s.profit));colorEl('scProfit',s.profit);
   const snr=activityFilter==='SNR Bonus';
   setText('scROIlbl',snr?'Retention':'ROI');
   setText('thROI',snr?'RETENTION':'ROI');
   setText('scROI',fmtP(s.roi));colorEl('scROI',s.roi);
-  setText('scPPB',fmtU(s.ppb));colorEl('scPPB',s.ppb);
+  setText('scPPB',fmtSigned(s.ppb));colorEl('scPPB',s.ppb);
   document.getElementById('scWL').textContent=s.wins+'W  '+s.losses+'L';
   setText('scAvgOdds',s.avgOdds>1?s.avgOdds.toFixed(2)+'x':'—');
   setText('tblTitle','Sport Breakdown — '+tlbl);
@@ -462,7 +476,7 @@ function drawChart(bets){
   const minD=pts[0].d.getTime(),maxD=pts[pts.length-1].d.getTime(),dRng=maxD-minD||1;
   const px=d=>PL+((d.getTime()-minD)/dRng)*cW,py=v=>PT+cH-((v-minV)/rng)*cH;
   const defs=se('defs');defs.innerHTML=`<linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3fb950" stop-opacity=".35"/><stop offset="100%" stop-color="#3fb950" stop-opacity=".02"/></linearGradient>`;svg.appendChild(defs);
-  for(let i=0;i<=4;i++){const v=minV+(rng/4)*i,y=py(v);const gl=se('line');sa(gl,{x1:PL,x2:W-PR,y1:y,y2:y,stroke:'#1a2235','stroke-width':1});svg.appendChild(gl);const lb=se('text');sa(lb,{x:PL-6,y:y+4,fill:'#6b7280','font-size':9,'text-anchor':'end'});lb.textContent=Math.abs(v)>=1000?(v/1000).toFixed(1)+'ku':v.toFixed(0)+'u';svg.appendChild(lb);}
+  for(let i=0;i<=4;i++){const v=minV+(rng/4)*i,y=py(v);const gl=se('line');sa(gl,{x1:PL,x2:W-PR,y1:y,y2:y,stroke:'#1a2235','stroke-width':1});svg.appendChild(gl);const lb=se('text');sa(lb,{x:PL-6,y:y+4,fill:'#6b7280','font-size':9,'text-anchor':'end'});lb.textContent=fmtAxis(v);svg.appendChild(lb);}
   function mkPath(pts){if(pts.length<2)return`M${px(pts[0].d)},${py(pts[0].v)}`;let d=`M${px(pts[0].d)},${py(pts[0].v)}`;for(let i=1;i<pts.length;i++){const p=pts[i-1],c=pts[i];const mx=(px(p.d)+px(c.d))/2;d+=` C${mx},${py(p.v)} ${mx},${py(c.v)} ${px(c.d)},${py(c.v)}`;}return d;}
   const lp=mkPath(pts),ap=lp+` L${px(pts[pts.length-1].d)},${py(0)} L${px(pts[0].d)},${py(0)} Z`;
   const area=se('path');area.setAttribute('d',ap);area.setAttribute('fill','url(#cg)');svg.appendChild(area);
@@ -486,7 +500,7 @@ function buildMonthly(bets){
   Object.entries(mm).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([key,val])=>{
     const[yr,mo]=key.split('-');const label=new Date(+yr,+mo-1,1).toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
     const cell=document.createElement('div');cell.className='month-cell '+(val>=0?'pos':'neg');
-    const display=Math.abs(val)>=1000?(val>=0?'+':'')+(val/1000).toFixed(1)+'ku':fmtU(val);
+    const display=fmtCompact(val);
     cell.innerHTML=`<div class="month-name">${label}</div><div class="month-val">${display}</div>`;
     grid.appendChild(cell);
   });
@@ -501,7 +515,7 @@ function buildTable(bets){
     .sort((a,b)=>b.s.turnover-a.s.turnover)
     .forEach(({name,s})=>{
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${name}</td><td class="c-purple">${fmtVol(s.turnover)}</td><td>${s.bets}</td><td>${s.avgOdds>1?s.avgOdds.toFixed(2):'—'}</td><td><span class="roi-badge ${roiCls(s.roi)}">${fmtP(s.roi)}</span></td><td class="${s.units>=0?'c-green':'c-red'}">${fmtU(s.units)}</td><td class="${s.ppb>=0?'c-green':'c-red'}">${fmtU(s.ppb)}</td><td>${fmtP(s.strike)}</td>`;
+      tr.innerHTML=`<td>${name}</td><td class="c-purple">${fmtVolume(s.turnover)}</td><td>${s.bets}</td><td>${s.avgOdds>1?s.avgOdds.toFixed(2):'—'}</td><td><span class="roi-badge ${roiCls(s.roi)}">${fmtP(s.roi)}</span></td><td class="${s.units>=0?'c-green':'c-red'}">${fmtSigned(s.units)}</td><td class="${s.ppb>=0?'c-green':'c-red'}">${fmtSigned(s.ppb)}</td><td>${fmtP(s.strike)}</td>`;
       tbody.appendChild(tr);
     });
 }
@@ -534,9 +548,9 @@ function buildRecentFeed(bets){
     else if(isLoss) rh='<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(248,81,73,.15);color:var(--red);">L</span>';
     else rh='<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:var(--bg4);color:var(--muted);">V</span>';
     const plColor=b.pending?'var(--muted)':isWin?'var(--green)':'var(--red)';
-    const plText=b.pending?'Pending':fmtU(b.netCash);
+    const plText=b.pending?'Pending':fmtSigned(b.netCash);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="color:var(--muted);font-size:11px;">${ds}</td><td style="font-weight:600;">${b.sport}</td><td style="color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sel}</td><td style="color:var(--dim);font-size:11px;">${bk}</td><td style="color:var(--purple);">${b.odds>0?b.odds.toFixed(2):'—'}</td><td>${fmtVol(b.stake)}</td><td>${rh}</td><td style="font-weight:600;color:${plColor};">${plText}</td>`;
+    tr.innerHTML=`<td style="color:var(--muted);font-size:11px;">${ds}</td><td style="font-weight:600;">${b.sport}</td><td style="color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sel}</td><td style="color:var(--dim);font-size:11px;">${bk}</td><td style="color:var(--purple);">${b.odds>0?b.odds.toFixed(2):'—'}</td><td>${fmtVolume(b.stake)}</td><td>${rh}</td><td style="font-weight:600;color:${plColor};">${plText}</td>`;
     tbody.appendChild(tr);
   });
   const ts=all[0].date?all[0].date.toLocaleDateString('en-AU',{day:'numeric',month:'short'}):'—';
@@ -575,6 +589,18 @@ function fmtP(n){if(isNaN(n))return'—';return(n>=0?'+':'')+n.toFixed(1)+'%';}
 function fmtU(n){if(isNaN(n))return'—';return(n>=0?'+':'')+n.toFixed(2)+'u';}
 // Unsigned unit volume (turnover, stake) with thousands separator.
 function fmtVol(n){if(isNaN(n))return'—';return n.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2})+'u';}
+// Dollar primitives (used when a $ unit size is selected).
+function dollars(n){return Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});}
+// Mode-aware: units when no unit size is set, otherwise dollars (value x unitSize).
+function fmtVolume(n){if(isNaN(n))return'—';return unitSize?(n<0?'-$':'$')+dollars(n*unitSize):fmtVol(n);}
+function fmtSigned(n){if(isNaN(n))return'—';return unitSize?(n<0?'-':'+')+'$'+dollars(n*unitSize):fmtU(n);}
+// Signed, with k-compaction for large monthly cells.
+function fmtCompact(n){if(isNaN(n))return'—';
+  if(unitSize){const d=n*unitSize,a=Math.abs(d);return a>=1000?(d<0?'-':'+')+'$'+(a/1000).toFixed(1)+'k':(d<0?'-':'+')+'$'+dollars(d);}
+  return Math.abs(n)>=1000?(n>=0?'+':'')+(n/1000).toFixed(1)+'ku':fmtU(n);}
+// Chart Y-axis label.
+function fmtAxis(v){if(unitSize){const d=v*unitSize;return Math.abs(d)>=1000?(d<0?'-$':'$')+(Math.abs(d)/1000).toFixed(1)+'k':(d<0?'-$':'$')+Math.abs(d).toFixed(0);}
+  return Math.abs(v)>=1000?(v/1000).toFixed(1)+'ku':v.toFixed(0)+'u';}
 function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 function colorEl(id,v){const e=document.getElementById(id);if(!e)return;e.classList.remove('c-green','c-red');e.classList.add(v>=0?'c-green':'c-red');}
 
@@ -607,7 +633,16 @@ function applyCustomRange(){
 }
 function setSport(v){sportFilter=v;recentPage=0;render();}
 function setActivity(v){activityFilter=v;recentPage=0;render();}
+function setUnitSize(v){unitSize=(v==='units')?null:+v;render();}
+function buildUnitOptions(){
+  const sel=document.getElementById('unitSelect');
+  for(let v=50;v<=1000;v+=50){
+    const o=document.createElement('option');o.value=v;o.textContent='$'+v.toLocaleString('en-AU')+' / unit';
+    sel.appendChild(o);
+  }
+}
 
+buildUnitOptions();
 loadData();
 </script>
 </body>
