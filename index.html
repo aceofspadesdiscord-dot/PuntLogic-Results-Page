@@ -484,7 +484,7 @@ function drawChart(bets){
   const line=se('path');line.setAttribute('d',lp);sa(line,{fill:'none',stroke:'#3fb950','stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'});svg.appendChild(line);
   const last=pts[pts.length-1];const dot=se('circle');sa(dot,{cx:px(last.d),cy:py(last.v),r:4,fill:'#0a0e17',stroke:'#3fb950','stroke-width':2});svg.appendChild(dot);
   const xt=Math.min(6,pts.length);
-  for(let i=0;i<xt;i++){const idx=Math.floor(i*(pts.length-1)/(xt-1));const p=pts[idx];const lb=se('text');sa(lb,{x:px(p.d),y:H-4,fill:'#6b7280','font-size':9,'text-anchor':'middle'});lb.textContent=p.d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});svg.appendChild(lb);}
+  for(let i=0;i<xt;i++){const idx=xt<2?0:Math.round(i*(pts.length-1)/(xt-1));const p=pts[idx];if(!p)continue;const lb=se('text');sa(lb,{x:px(p.d),y:H-4,fill:'#6b7280','font-size':9,'text-anchor':'middle'});lb.textContent=p.d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});svg.appendChild(lb);}
 }
 function se(t){return document.createElementNS('http://www.w3.org/2000/svg',t);}
 function sa(el,a){Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v));}
