@@ -97,6 +97,34 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
 .pager button.active{background:var(--purple-dim);border-color:var(--purple);color:#fff;font-weight:600;}
 .pager button:disabled{opacity:.4;cursor:default;}
 .pager .pager-gap{color:var(--muted);padding:0 2px;}
+/* hover help tooltips */
+.help{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--bg4);color:var(--dim);font-size:9px;font-weight:700;cursor:help;position:relative;margin-left:5px;vertical-align:middle;}
+.help .tip{display:none;position:absolute;top:165%;left:0;width:250px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;font-weight:400;line-height:1.55;color:var(--text);text-transform:none;letter-spacing:normal;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.55);}
+.help .tip b{color:var(--purple);}
+.help.tip-left .tip{left:auto;right:0;}
+.help:hover .tip{display:block;}
+/* sport multi-select */
+.ms{position:relative;}
+.ms-btn{text-align:left;min-width:120px;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ms-menu{display:none;position:absolute;top:calc(100% + 5px);left:0;min-width:180px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px;z-index:200;box-shadow:0 10px 30px rgba(0,0,0,.55);}
+.ms-menu.open{display:block;}
+.ms-opt{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;font-size:13px;color:var(--dim);cursor:pointer;user-select:none;}
+.ms-opt:hover{background:var(--bg4);}
+.ms-opt input{accent-color:var(--purple);width:14px;height:14px;cursor:pointer;}
+.ms-opt.all{border-bottom:1px solid var(--border);margin-bottom:4px;padding-bottom:9px;color:var(--text);font-weight:500;}
+/* "what is a unit?" button + arrow + popover */
+.unit-row{display:flex;align-items:center;gap:7px;}
+.unit-arrow{color:var(--purple);font-size:17px;font-weight:700;animation:nudge 1.1s ease-in-out infinite;}
+@keyframes nudge{0%,100%{transform:translateX(0);}50%{transform:translateX(-4px);}}
+.unit-info-wrap{position:relative;}
+.unit-btn{background:var(--purple);color:#fff;border:none;padding:7px 13px;border-radius:6px;font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;white-space:nowrap;animation:glow 2s ease-in-out infinite;}
+.unit-btn:hover{background:var(--purple-dim);animation:none;}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(126,87,194,.5);}50%{box-shadow:0 0 0 6px rgba(126,87,194,0);}}
+.popover{display:none;position:absolute;top:calc(100% + 9px);right:0;width:350px;background:var(--bg2);border:1px solid var(--purple);border-radius:10px;padding:15px 17px;font-size:12px;line-height:1.6;color:var(--dim);z-index:300;box-shadow:0 16px 40px rgba(0,0,0,.6);text-transform:none;letter-spacing:normal;}
+.popover.open{display:block;}
+.popover h4{color:var(--purple);font-size:13px;margin-bottom:8px;}
+.popover b{color:var(--text);}
+.popover .pop-eg{background:var(--bg3);border-radius:7px;padding:10px 12px;margin-top:10px;font-size:11.5px;color:var(--text);}
 @media(max-width:768px){
   .at-banner{grid-template-columns:1fr 1fr;}.stat-grid{grid-template-columns:1fr 1fr;}
   .hero{flex-direction:column;gap:14px;align-items:flex-start;}.main{padding:12px;}
@@ -123,15 +151,30 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
     <span class="updated" id="updatedTime"></span>
     <div class="nav-group">
       <span class="nav-label">Unit Size</span>
-      <select class="nav-select" id="unitSelect" onchange="setUnitSize(this.value)">
-        <option value="units">Units (default)</option>
-      </select>
+      <div class="unit-row">
+        <select class="nav-select" id="unitSelect" onchange="setUnitSize(this.value)">
+          <option value="units">Units (default)</option>
+        </select>
+        <span class="unit-arrow" title="Pick how much 1 unit is worth">⟵</span>
+        <div class="unit-info-wrap">
+          <button class="unit-btn" id="unitInfoBtn" onclick="toggleUnitInfo(event)">❔ What is a unit?</button>
+          <div class="popover" id="unitInfo">
+            <h4>💡 What is a unit?</h4>
+            A <b>unit</b> is <b>1% of the bankroll</b> you're willing to invest — so everyone can read these results in their own stake size.
+            <div class="pop-eg">
+              With a <b>$10,000</b> bankroll, 1 unit = <b>$100</b>. So a system up <b>+157.41u</b> in the first half of 2026 made you <b>$15,741</b>.<br><br>
+              That's why <b>POT (betting)</b> ≠ <b>ROI (stocks)</b>: treated like stocks, $15,741 / $10,000 = <b>157.41% in 6 months</b>. The market averages ~10% p.a. (≈5% over 6 months) — about <b>31× less</b> for the same period. That's the power of turning over and compounding your bankroll.
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="nav-group">
       <span class="nav-label">Sport</span>
-      <select class="nav-select" id="sportSelect" onchange="setSport(this.value)">
-        <option value="All">All Sports</option>
-      </select>
+      <div class="ms">
+        <button type="button" class="nav-select ms-btn" id="sportBtn" onclick="toggleSportMenu(event)">All Sports</button>
+        <div class="ms-menu" id="sportMenu"></div>
+      </div>
     </div>
     <div class="nav-group">
       <span class="nav-label">Bet Type</span>
@@ -153,7 +196,7 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
 
   <div class="at-banner">
     <div class="at-card"><div class="at-label">All Time Profit</div><div class="at-val c-green" id="atProfit">—</div></div>
-    <div class="at-card"><div class="at-label">All Time ROI</div><div class="at-val c-green" id="atROI">—</div></div>
+    <div class="at-card"><div class="at-label">All Time POT<span class="help">?<span class="tip"><b>POT = Profit on Turnover.</b> Profit as a % of everything staked — your return per bet placed ("per click"). 10% POT means every $100 you put through returns $10 profit. Unlike stocks (~10% for a whole <i>year</i> on money invested once), you turn your bankroll over many times, so it compounds far faster.</span></span></div><div class="at-val c-green" id="atROI">—</div></div>
     <div class="at-card"><div class="at-label">All Time Turnover</div><div class="at-val c-purple" id="atTurnover">—</div></div>
   </div>
 
@@ -185,12 +228,12 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
   </div>
 
   <div class="stat-grid">
-    <div class="sc"><div class="sc-lbl">Profit</div><div class="sc-val c-green" id="scProfit">—</div></div>
-    <div class="sc"><div class="sc-lbl" id="scROIlbl">ROI</div><div class="sc-val c-green" id="scROI">—</div></div>
-    <div class="sc"><div class="sc-lbl">Profit / Bet</div><div class="sc-val c-green" id="scPPB">—</div></div>
-    <div class="sc"><div class="sc-lbl">W / L</div><div class="sc-val c-dim" id="scWL">—</div></div>
-    <div class="sc"><div class="sc-lbl">Median Odds</div><div class="sc-val c-purple" id="scMedOdds">—</div></div>
-    <div class="sc"><div class="sc-lbl">Stake-Wtd Odds</div><div class="sc-val c-purple" id="scWtdOdds">—</div></div>
+    <div class="sc"><div class="sc-lbl"><span id="lblProfit">Profit</span></div><div class="sc-val c-green" id="scProfit">—</div></div>
+    <div class="sc"><div class="sc-lbl"><span id="lblPOT">POT</span><span class="help">?<span class="tip"><b>POT = Profit on Turnover.</b> Profit as a % of everything staked — your return per bet placed ("per click"). 10% POT means every $100 you put through returns $10 profit. Unlike stocks (~10% for a whole <i>year</i> on money invested once), you turn your bankroll over many times, so it compounds far faster.</span></span></div><div class="sc-val c-green" id="scROI">—</div></div>
+    <div class="sc"><div class="sc-lbl"><span id="lblPPB">Profit / Bet</span></div><div class="sc-val c-green" id="scPPB">—</div></div>
+    <div class="sc"><div class="sc-lbl"><span id="lblWL">W / L</span></div><div class="sc-val c-dim" id="scWL">—</div></div>
+    <div class="sc"><div class="sc-lbl"><span id="lblMed">Median Odds</span><span class="help">?<span class="tip"><b>Median odds</b> are the middle bet's price — half your bets are priced higher, half lower. Unlike a plain average, it isn't dragged up by the occasional longshot multi, so it reflects a <i>typical</i> bet.</span></span></div><div class="sc-val c-purple" id="scMedOdds">—</div></div>
+    <div class="sc"><div class="sc-lbl"><span id="lblWtd">Stake-Weighted Odds</span><span class="help tip-left">?<span class="tip"><b>Stake-weighted odds</b> average the price by stake, so bigger bets count more. Stake-weighted odds of <b>2.00</b> mean that across every unit you risked, the average price was even money (2.00) — a truer read on your book than a plain average, which a few tiny longshots can distort.</span></span></div><div class="sc-val c-purple" id="scWtdOdds">—</div></div>
   </div>
 
   <div class="chart-card">
@@ -254,7 +297,7 @@ const EXCLUDE_FROM_STATS = new Set(['deposit','withdrawal']);
 
 // ─── State ───────────────────────────────────────────────────────
 let allBets=[];
-let period=7, sportFilter='All', activityFilter='Non-Promo';
+let period=7, sportFilter=[], activityFilter='Non-Promo'; // sportFilter: [] = all sports, else list of selected
 let unitSize=null; // null = report in units; otherwise $ per unit (50..1000)
 let customStart=null, customEnd=null;
 let recentPage=0;
@@ -345,14 +388,14 @@ function parseBets(rows){
 
 // ─── Filtering & Stats ───────────────────────────────────────────
 function isStatBet(b){return!EXCLUDE_FROM_STATS.has(b.activity.toLowerCase());}
-function filterBets(bets,days,tip,act){
+function filterBets(bets,days,sports,act){
   let lo=null,hi=null;
   if(days==='custom'){lo=customStart;hi=customEnd;}
   else if(days>0){lo=cutoff(days);}
   return bets.filter(b=>{
     if(lo&&b.date<lo) return false;
     if(hi&&b.date>hi) return false;
-    if(tip!=='All'&&b.sport!==tip) return false;
+    if(sports&&sports.length&&!sports.includes(b.sport)) return false;
     if(act!=='All'){
       const al=act.toLowerCase(),bl=b.activity.toLowerCase();
       if(al==='promo'){if(!PROMO_FILTER_ACTS.has(bl)) return false;}
@@ -398,23 +441,48 @@ function showErr(m){const e=document.getElementById('errMsg');e.style.display=m?
 // ─── Dropdowns ───────────────────────────────────────────────────
 const SPORT_EMOJI={NBA:'🏀',AFL:'🦘',NRL:'🏉',Soccer:'⚽',Racing:'🏇'};
 function sportEmoji(s){return SPORT_EMOJI[s]||'🎯';}
-// " (🦘 AFL)" suffix for sport-filtered stats; empty when showing all sports.
-function sportTag(){return sportFilter==='All'?'':` (${sportEmoji(sportFilter)} ${sportFilter})`;}
-function buildOptions(){
-  const tips=[...new Set(allBets.map(b=>b.sport))].filter(Boolean).sort();
-  const tSel=document.getElementById('sportSelect'),prevT=tSel.value;
-  tSel.innerHTML='<option value="All">All Sports</option>';
-  tips.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=sportEmoji(t)+' '+t;tSel.appendChild(o);});
-  if([...tSel.options].some(o=>o.value===prevT)) tSel.value=prevT;
+// Human label for the current sport selection ([] = all).
+function selLabel(){
+  if(!sportFilter.length) return 'All Sports';
+  if(sportFilter.length<=2) return sportFilter.map(s=>sportEmoji(s)+' '+s).join(' + ');
+  return sportFilter.length+' sports';
 }
+// " (🦘 AFL)" suffix for sport-filtered stats; empty when showing all sports.
+function sportTag(){return sportFilter.length?' ('+selLabel()+')':'';}
+function buildOptions(){
+  const sports=[...new Set(allBets.map(b=>b.sport))].filter(Boolean).sort();
+  const menu=document.getElementById('sportMenu');menu.innerHTML='';
+  const all=document.createElement('div');all.className='ms-opt all';all.textContent='All Sports';
+  all.onclick=()=>{sportFilter=[];recentPage=0;syncSportMenu();render();};
+  menu.appendChild(all);
+  sports.forEach(s=>{
+    const row=document.createElement('label');row.className='ms-opt';
+    row.innerHTML=`<input type="checkbox" value="${s}"><span>${sportEmoji(s)} ${s}</span>`;
+    row.querySelector('input').onchange=e=>toggleSport(s,e.target.checked);
+    menu.appendChild(row);
+  });
+  // Drop any selected sports no longer present in the data.
+  sportFilter=sportFilter.filter(s=>sports.includes(s));
+  syncSportMenu();
+}
+function toggleSport(s,on){
+  sportFilter=sportFilter.filter(x=>x!==s);
+  if(on) sportFilter.push(s);
+  recentPage=0;syncSportMenu();render();
+}
+function syncSportMenu(){
+  document.querySelectorAll('#sportMenu input').forEach(i=>i.checked=sportFilter.includes(i.value));
+  setText('sportBtn',selLabel());
+}
+function toggleSportMenu(e){e.stopPropagation();document.getElementById('sportMenu').classList.toggle('open');}
 
 // ─── Filter Pill ─────────────────────────────────────────────────
 function updateFilterBar(){
   const bar=document.getElementById('filterBar');
   const pt=document.getElementById('pillSport'),pa=document.getElementById('pillActivity'),pu=document.getElementById('pillUnit');
   // Bet Type is fixed to Non-Promo, so it no longer drives the filter bar / pill.
-  bar.classList.toggle('active',sportFilter!=='All'||!!unitSize);
-  if(sportFilter!=='All'){pt.style.display='inline-flex';pt.textContent=sportEmoji(sportFilter)+' '+sportFilter;}else pt.style.display='none';
+  bar.classList.toggle('active',sportFilter.length>0||!!unitSize);
+  if(sportFilter.length){pt.style.display='inline-flex';pt.textContent=selLabel();}else pt.style.display='none';
   pa.style.display='none';
   if(unitSize){pu.style.display='inline-flex';pu.textContent='💵 $'+unitSize.toLocaleString('en-AU')+' / unit';}else pu.style.display='none';
 }
@@ -429,7 +497,7 @@ function render(){
   setText('thUnits',unitSize?'PROFIT':'UNITS');
   setText('thUPB',unitSize?'P/BET':'UNITS/BET');
 
-  const atBets=filterBets(allBets,0,'All','All');
+  const atBets=filterBets(allBets,0,[],'All');
   const at=calcStats(atBets);
   setText('atProfit',fmtSigned(at.units));colorEl('atProfit',at.units);
   setText('atROI',fmtP(at.roi));colorEl('atROI',at.roi);
@@ -447,18 +515,24 @@ function render(){
   setText('monthlyTitle','Monthly P&L'+sportTag());
   setText('recentTitle','🕐 Recent Bets'+sportTag());
   const s=calcStats(forStats);
+  // Tag every sport-filtered stat label with the current selection.
+  const tag=sportTag();
+  setText('lblProfit','Profit'+tag);
+  setText('lblPOT','POT'+tag);
+  setText('lblPPB','Profit / Bet'+tag);
+  setText('lblWL','W / L'+tag);
+  setText('lblMed','Median Odds'+tag);
+  setText('lblWtd','Stake-Weighted Odds'+tag);
+  setText('thROI','POT');
   setText('heroTurnover',fmtVolume(s.turnover));setText('heroBets',s.bets);
   setText('heroAvg',fmtVolume(s.avgStake));setText('heroStrike',fmtP(s.strike));
   setText('scProfit',fmtSigned(s.profit));colorEl('scProfit',s.profit);
-  const snr=activityFilter==='SNR Bonus';
-  setText('scROIlbl',snr?'Retention':'ROI');
-  setText('thROI',snr?'RETENTION':'ROI');
   setText('scROI',fmtP(s.roi));colorEl('scROI',s.roi);
   setText('scPPB',fmtSigned(s.ppb));colorEl('scPPB',s.ppb);
   document.getElementById('scWL').textContent=s.wins+'W  '+s.losses+'L';
   setText('scMedOdds',s.medOdds>1?s.medOdds.toFixed(2)+'x':'—');
   setText('scWtdOdds',s.wtdOdds>1?s.wtdOdds.toFixed(2)+'x':'—');
-  setText('tblTitle',(sportFilter==='All'?'Sport Breakdown':sportEmoji(sportFilter)+' '+sportFilter)+' — '+tlbl);
+  setText('tblTitle',(sportFilter.length?selLabel():'Sport Breakdown')+' — '+tlbl);
   drawChart(bf);
   buildMonthly(filterBets(allBets,0,sportFilter,activityFilter));
   buildTable(bf);
@@ -538,7 +612,7 @@ function buildRecentFeed(bets){
     return al==='promo'?PROMO_FILTER_ACTS.has(bl):bl===al;
   };
   const bsrc=bets.filter(b=>isStatBet(b)&&b.stake>0&&actMatch(b)
-    &&(sportFilter==='All'||b.sport===sportFilter));
+    &&(!sportFilter.length||sportFilter.includes(b.sport)));
   const inRange=b=>period!=='custom'||(b.date>=customStart&&b.date<=customEnd);
   const all=bsrc.filter(inRange).sort((a,b)=>b.date-a.date).slice(0,RECENT_MAX);
   if(!all.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:16px;">No bets yet</td></tr>';if(pager)pager.innerHTML='';return;}
@@ -639,9 +713,14 @@ function applyCustomRange(){
   document.getElementById('subCustom').textContent=customRangeText();
   render();
 }
-function setSport(v){sportFilter=v;recentPage=0;render();}
 function setActivity(v){activityFilter=v;recentPage=0;render();}
 function setUnitSize(v){unitSize=(v==='units')?null:+v;render();}
+function toggleUnitInfo(e){e.stopPropagation();document.getElementById('unitInfo').classList.toggle('open');}
+// Close the sport menu / unit popover when clicking outside them.
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.ms')) document.getElementById('sportMenu').classList.remove('open');
+  if(!e.target.closest('.unit-info-wrap')) document.getElementById('unitInfo').classList.remove('open');
+});
 function buildUnitOptions(){
   const sel=document.getElementById('unitSelect');
   for(let v=50;v<=1000;v+=50){
