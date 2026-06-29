@@ -195,7 +195,8 @@ td:first-child{text-align:left;font-weight:600;color:var(--text);}
     <div class="sc"><div class="sc-lbl" id="scROIlbl">ROI</div><div class="sc-val c-green" id="scROI">—</div></div>
     <div class="sc"><div class="sc-lbl">Profit / Bet</div><div class="sc-val c-green" id="scPPB">—</div></div>
     <div class="sc"><div class="sc-lbl">W / L</div><div class="sc-val c-dim" id="scWL">—</div></div>
-    <div class="sc"><div class="sc-lbl">Avg Odds</div><div class="sc-val c-purple" id="scAvgOdds">—</div></div>
+    <div class="sc"><div class="sc-lbl">Median Odds</div><div class="sc-val c-purple" id="scMedOdds">—</div></div>
+    <div class="sc"><div class="sc-lbl">Stake-Wtd Odds</div><div class="sc-val c-purple" id="scWtdOdds">—</div></div>
   </div>
 
   <div class="chart-card">
@@ -366,14 +367,18 @@ function filterBets(bets,days,tip,act){
     return true;
   });
 }
+function median(arr){if(!arr.length)return 0;const s=[...arr].sort((a,b)=>a-b),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
 function calcStats(bets){
   const c=bets.filter(isStatBet);
-  if(!c.length) return{turnover:0,profit:0,roi:0,units:0,bets:0,wins:0,losses:0,avgOdds:0,avgStake:0,ppb:0,strike:0};
+  if(!c.length) return{turnover:0,profit:0,roi:0,units:0,bets:0,wins:0,losses:0,avgOdds:0,medOdds:0,wtdOdds:0,avgStake:0,ppb:0,strike:0};
   const to=c.reduce((s,b)=>s+b.stake,0),pr=c.reduce((s,b)=>s+b.netCash,0),un=c.reduce((s,b)=>s+b.unitsGained,0);
   const wi=c.filter(b=>b.result==='w'||b.result==='1').length,lo=c.filter(b=>b.result==='l'||b.result==='2').length;
+  // Odds stats use only priced bets (odds>1, i.e. exclude voids/bonuses).
   const oa=c.filter(b=>b.odds>1),ao=oa.length?oa.reduce((s,b)=>s+b.odds,0)/oa.length:0;
+  const oaStake=oa.reduce((s,b)=>s+b.stake,0);
+  const wtd=oaStake>0?oa.reduce((s,b)=>s+b.odds*b.stake,0)/oaStake:0;
   return{turnover:to,profit:pr,roi:to>0?(pr/to)*100:0,units:un,bets:c.length,wins:wi,losses:lo,
-    avgOdds:ao,avgStake:c.length?to/c.length:0,ppb:c.length?pr/c.length:0,strike:(wi+lo)>0?wi/(wi+lo)*100:0};
+    avgOdds:ao,medOdds:median(oa.map(b=>b.odds)),wtdOdds:wtd,avgStake:c.length?to/c.length:0,ppb:c.length?pr/c.length:0,strike:(wi+lo)>0?wi/(wi+lo)*100:0};
 }
 
 // ─── Data Loading ────────────────────────────────────────────────
@@ -449,7 +454,8 @@ function render(){
   setText('scROI',fmtP(s.roi));colorEl('scROI',s.roi);
   setText('scPPB',fmtSigned(s.ppb));colorEl('scPPB',s.ppb);
   document.getElementById('scWL').textContent=s.wins+'W  '+s.losses+'L';
-  setText('scAvgOdds',s.avgOdds>1?s.avgOdds.toFixed(2)+'x':'—');
+  setText('scMedOdds',s.medOdds>1?s.medOdds.toFixed(2)+'x':'—');
+  setText('scWtdOdds',s.wtdOdds>1?s.wtdOdds.toFixed(2)+'x':'—');
   setText('tblTitle','Sport Breakdown — '+tlbl);
   drawChart(bf);
   buildMonthly(filterBets(allBets,0,sportFilter,activityFilter));
